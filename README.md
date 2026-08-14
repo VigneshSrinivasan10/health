@@ -14,8 +14,9 @@ strong each one is, and jot a note if you want. That's it.
 ## What it does
 
 **Check-in** — a dashboard of emotions, each with its own rating.
-- Pick the time of day (**Morning / Afternoon / Evening** — defaults to now), so you
-  can check in more than once a day and keep them separate.
+- Pick the day (**Today / Yesterday**, or any date from the calendar) so you can
+  backfill a day you missed, and the time of day (**Morning / Afternoon / Evening**
+  — defaults to now), so you can check in more than once a day and keep them separate.
 - Go down the list (grouped Pleasant / Neutral / Difficult) and rate how strongly
   you feel each one on a 1–5 scale. Tap a dot again to clear it. Skip anything that
   doesn't apply.

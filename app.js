@@ -14,6 +14,7 @@ const state = {
   ratings: {},   // { emotionName: 1..5 }
   note: "",
   segment: null, // morning | afternoon | evening (defaults to now)
+  date: null,    // day being logged (YYYY-MM-DD, defaults to today)
   filter: "all", // history filter by segment
   editId: null,  // _id of the check-in being edited (null = new)
   editTs: null,  // its original timestamp, for the banner
@@ -44,6 +45,10 @@ const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pad = (n) => String(n).padStart(2, "0");
 const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const keyToDate = (k) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+const prettyDate = (k) => keyToDate(k).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+const SEG_HOUR = { morning: 9, afternoon: 14, evening: 20 };
 const toneOf = (name) => (CATALOG.moods.find((m) => m.name === name) || {}).tone || "neutral";
 const toneColor = (t) => (t === "pleasant" ? "#3CC28B" : t === "unpleasant" ? "#8C7BF0" : "#7F8C99");
 
@@ -73,24 +78,30 @@ async function saveCheckin() {
     return;
   }
 
-  const now = new Date();
+  const seg = state.segment || currentSegId();
+  const todayK = dayKey(new Date());
+  const chosen = state.date || todayK;
+  // today → keep the real current time; a past day → put it at the segment's hour
+  const when = chosen === todayK ? new Date() : (() => { const d = keyToDate(chosen); d.setHours(SEG_HOUR[seg] || 20, 0, 0, 0); return d; })();
+  const ts = when.getTime();
   await db.put({
-    _id: `checkin_${now.getTime()}`,
+    _id: `checkin_${ts}_${Math.random().toString(36).slice(2, 6)}`,
     type: "checkin",
-    ts: now.getTime(),
-    date: now.toISOString(),
-    day: dayKey(now),
-    segment: state.segment || currentSegId(),
+    ts,
+    date: when.toISOString(),
+    day: dayKey(when),
+    segment: seg,
     emotions,
     note: state.note.trim(),
   });
   clearDraft();
-  toast("Checked in 💜");
+  toast(chosen === todayK ? "Checked in 💜" : `Logged for ${prettyDate(chosen)} ✓`);
   render();
 }
 
 function clearDraft() {
   state.ratings = {}; state.note = ""; state.segment = currentSegId();
+  state.date = dayKey(new Date());
   state.editId = null; state.editTs = null;
 }
 
@@ -189,16 +200,35 @@ async function renderToday() {
 
   const editing = !!state.editId;
   const editWhen = editing ? new Date(state.editTs).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }) : "";
+  const todayK = dayKey(now);
+  const yesterK = dayKey(addDays(now, -1));
+  if (!state.date) state.date = todayK;
+  const backdating = !editing && state.date !== todayK;
+  const customDate = state.date !== todayK && state.date !== yesterK;
+
+  const dateRow = editing ? "" : `
+    <div class="group-label">When</div>
+    <div class="date-row">
+      <button class="date-quick ${state.date === todayK ? "active" : ""}" data-d="${todayK}">Today</button>
+      <button class="date-quick ${state.date === yesterK ? "active" : ""}" data-d="${yesterK}">Yesterday</button>
+      <label class="date-other ${customDate ? "active" : ""}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/></svg>
+        <input type="date" id="dateInput" max="${todayK}" value="${state.date}" />
+      </label>
+    </div>`;
 
   view.innerHTML = `
     <div class="lg-head">
-      <div class="lg-sub">${editing ? "Editing a check-in" : esc(dateStr) + (st ? ` · 🔥 ${st}-day streak` : "")}</div>
+      <div class="lg-sub">${editing ? "Editing a check-in" : backdating ? `Logging for ${esc(prettyDate(state.date))}` : esc(dateStr) + (st ? ` · 🔥 ${st}-day streak` : "")}</div>
       <h1>${editing ? "Edit check-in" : "How are you feeling?"}</h1>
       <p class="lead">Tap the emotions you're feeling, then set how strong each one is.</p>
     </div>
 
     ${editing ? `<div class="edit-banner"><span>${esc(editWhen)}</span><button id="cancelEdit">Cancel</button></div>` : ""}
 
+    ${dateRow}
+
+    <div class="group-label">Time of day</div>
     <div class="seg-tabs">${segTabs}</div>
 
     ${emotionGroup("Pleasant", "pleasant")}
@@ -223,6 +253,11 @@ async function renderToday() {
 
 function wireToday() {
   const view = $("#view");
+  view.querySelectorAll(".date-quick").forEach((b) => {
+    b.onclick = () => { state.date = b.dataset.d; renderToday(); };
+  });
+  const dateInput = $("#dateInput", view);
+  if (dateInput) dateInput.onchange = () => { if (dateInput.value) { state.date = dateInput.value; renderToday(); } };
   view.querySelectorAll(".seg").forEach((b) => {
     b.onclick = () => {
       state.segment = b.dataset.seg;
