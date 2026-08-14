@@ -206,13 +206,15 @@ async function renderToday() {
   const backdating = !editing && state.date !== todayK;
   const customDate = state.date !== todayK && state.date !== yesterK;
 
+  const shortDate = customDate ? keyToDate(state.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
   const dateRow = editing ? "" : `
     <div class="group-label">When</div>
     <div class="date-row">
       <button class="date-quick ${state.date === todayK ? "active" : ""}" data-d="${todayK}">Today</button>
       <button class="date-quick ${state.date === yesterK ? "active" : ""}" data-d="${yesterK}">Yesterday</button>
-      <label class="date-other ${customDate ? "active" : ""}">
+      <label class="date-other ${customDate ? "active" : ""}" title="Pick a date">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/></svg>
+        ${shortDate ? `<span>${esc(shortDate)}</span>` : ""}
         <input type="date" id="dateInput" max="${todayK}" value="${state.date}" />
       </label>
     </div>`;

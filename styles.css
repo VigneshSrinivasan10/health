@@ -58,22 +58,26 @@ textarea { font-family: inherit; }
 
 .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; margin-bottom: 4px; }
 
-/* ---------- date selector ---------- */
-.date-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 2px 0; }
+/* ---------- date selector (single line) ---------- */
+.date-row { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; margin: 2px 0; }
 .date-quick {
+  flex: 0 1 auto; white-space: nowrap;
   border: 1.5px solid var(--sep); background: var(--card); color: var(--ink);
-  border-radius: 999px; padding: 9px 16px; font-size: 14.5px; font-weight: 600; box-shadow: var(--shadow);
+  border-radius: 999px; padding: 9px 15px; font-size: 14.5px; font-weight: 600; box-shadow: var(--shadow);
   transition: background .12s ease, border-color .12s ease, color .12s ease;
 }
 .date-quick.active { background: var(--tint); border-color: var(--tint); color: #fff; }
 .date-other {
-  display: inline-flex; align-items: center; gap: 7px; color: var(--muted);
+  position: relative; flex: 0 0 auto;
+  display: inline-flex; align-items: center; gap: 6px; color: var(--muted);
   background: var(--card); border: 1.5px solid var(--sep); border-radius: 999px;
-  padding: 7px 13px; box-shadow: var(--shadow); cursor: pointer;
+  padding: 9px 14px; box-shadow: var(--shadow); cursor: pointer;
 }
 .date-other.active { border-color: var(--tint); color: var(--tint); }
-.date-other svg { width: 17px; height: 17px; }
-.date-other input { border: 0; background: none; color: var(--ink); font-size: 14px; font-weight: 600; font-family: inherit; min-width: 0; }
+.date-other svg { width: 18px; height: 18px; display: block; }
+.date-other span { font-size: 14px; font-weight: 600; color: var(--tint); white-space: nowrap; }
+/* the native picker sits invisibly on top so tapping opens it */
+.date-other input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; margin: 0; cursor: pointer; }
 
 /* ---------- time-of-day selector ---------- */
 .seg-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 2px; }
