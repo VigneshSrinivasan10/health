@@ -1,0 +1,99 @@
+{
+  "categories": [
+    {
+      "id": "activity",
+      "name": "Activity",
+      "color": "#FA5838",
+      "icon": "flame",
+      "metrics": ["steps", "distance", "active_energy", "exercise_minutes", "stand_hours", "flights"]
+    },
+    {
+      "id": "body",
+      "name": "Body Measurements",
+      "color": "#B586F0",
+      "icon": "body",
+      "metrics": ["weight", "height", "bmi", "body_fat", "lean_mass", "waist"]
+    },
+    {
+      "id": "heart",
+      "name": "Heart",
+      "color": "#FA114F",
+      "icon": "heart",
+      "metrics": ["heart_rate", "resting_hr", "walking_hr", "hrv"]
+    },
+    {
+      "id": "nutrition",
+      "name": "Nutrition",
+      "color": "#8CC63F",
+      "icon": "fork",
+      "metrics": ["dietary_energy", "water", "protein", "carbs", "fat", "caffeine"]
+    },
+    {
+      "id": "sleep",
+      "name": "Sleep",
+      "color": "#5E5CE6",
+      "icon": "bed",
+      "metrics": ["sleep"]
+    },
+    {
+      "id": "mindfulness",
+      "name": "Mindfulness",
+      "color": "#65C6C9",
+      "icon": "mind",
+      "metrics": ["mindful_minutes"]
+    },
+    {
+      "id": "respiratory",
+      "name": "Respiratory",
+      "color": "#4FD8E4",
+      "icon": "lungs",
+      "metrics": ["blood_oxygen", "respiratory_rate"]
+    },
+    {
+      "id": "vitals",
+      "name": "Vitals",
+      "color": "#FF375F",
+      "icon": "pulse",
+      "metrics": ["systolic", "diastolic", "body_temp"]
+    }
+  ],
+  "metrics": {
+    "steps": { "name": "Steps", "unit": "steps", "color": "#FA5838", "icon": "flame", "agg": "sum", "precision": 0, "goal": 10000, "seedMin": 3200, "seedMax": 13500 },
+    "distance": { "name": "Walking + Running Distance", "unit": "km", "color": "#FA5838", "icon": "flame", "agg": "sum", "precision": 2, "seedMin": 2.0, "seedMax": 9.5 },
+    "active_energy": { "name": "Active Energy", "unit": "kcal", "color": "#FA5838", "icon": "flame", "agg": "sum", "precision": 0, "goal": 500, "seedMin": 240, "seedMax": 760 },
+    "exercise_minutes": { "name": "Exercise Minutes", "unit": "min", "color": "#92E82A", "icon": "flame", "agg": "sum", "precision": 0, "goal": 30, "seedMin": 8, "seedMax": 62 },
+    "stand_hours": { "name": "Stand Hours", "unit": "hr", "color": "#1EEAEF", "icon": "flame", "agg": "sum", "precision": 0, "goal": 12, "seedMin": 6, "seedMax": 14 },
+    "flights": { "name": "Flights Climbed", "unit": "floors", "color": "#FA5838", "icon": "flame", "agg": "sum", "precision": 0, "seedMin": 2, "seedMax": 18 },
+
+    "weight": { "name": "Weight", "unit": "kg", "color": "#B586F0", "icon": "body", "agg": "latest", "precision": 1, "seedMin": 71.0, "seedMax": 73.5, "seedEvery": 3 },
+    "height": { "name": "Height", "unit": "cm", "color": "#B586F0", "icon": "body", "agg": "latest", "precision": 0, "seedMin": 178, "seedMax": 178, "seedEvery": 90 },
+    "bmi": { "name": "Body Mass Index", "unit": "", "color": "#B586F0", "icon": "body", "agg": "latest", "precision": 1, "seedMin": 22.6, "seedMax": 23.2, "seedEvery": 3 },
+    "body_fat": { "name": "Body Fat Percentage", "unit": "%", "color": "#B586F0", "icon": "body", "agg": "latest", "precision": 1, "seedMin": 17.5, "seedMax": 19.5, "seedEvery": 5 },
+    "lean_mass": { "name": "Lean Body Mass", "unit": "kg", "color": "#B586F0", "icon": "body", "agg": "latest", "precision": 1, "seedMin": 58.0, "seedMax": 60.0, "seedEvery": 5 },
+    "waist": { "name": "Waist Circumference", "unit": "cm", "color": "#B586F0", "icon": "body", "agg": "latest", "precision": 1, "seedMin": 82, "seedMax": 85, "seedEvery": 7 },
+
+    "heart_rate": { "name": "Heart Rate", "unit": "bpm", "color": "#FA114F", "icon": "heart", "agg": "avg", "precision": 0, "range": true, "seedMin": 58, "seedMax": 142, "seedCount": 6 },
+    "resting_hr": { "name": "Resting Heart Rate", "unit": "bpm", "color": "#FA114F", "icon": "heart", "agg": "avg", "precision": 0, "seedMin": 52, "seedMax": 64 },
+    "walking_hr": { "name": "Walking Heart Rate Average", "unit": "bpm", "color": "#FA114F", "icon": "heart", "agg": "avg", "precision": 0, "seedMin": 90, "seedMax": 118 },
+    "hrv": { "name": "Heart Rate Variability", "unit": "ms", "color": "#FA114F", "icon": "heart", "agg": "avg", "precision": 0, "seedMin": 34, "seedMax": 78 },
+
+    "dietary_energy": { "name": "Dietary Energy", "unit": "kcal", "color": "#8CC63F", "icon": "fork", "agg": "sum", "precision": 0, "seedMin": 1650, "seedMax": 2450 },
+    "water": { "name": "Water", "unit": "ml", "color": "#00B3D8", "icon": "drop", "agg": "sum", "precision": 0, "goal": 2000, "seedMin": 900, "seedMax": 2600 },
+    "protein": { "name": "Protein", "unit": "g", "color": "#8CC63F", "icon": "fork", "agg": "sum", "precision": 0, "seedMin": 60, "seedMax": 140 },
+    "carbs": { "name": "Carbohydrates", "unit": "g", "color": "#8CC63F", "icon": "fork", "agg": "sum", "precision": 0, "seedMin": 180, "seedMax": 320 },
+    "fat": { "name": "Total Fat", "unit": "g", "color": "#8CC63F", "icon": "fork", "agg": "sum", "precision": 0, "seedMin": 45, "seedMax": 95 },
+    "caffeine": { "name": "Caffeine", "unit": "mg", "color": "#8CC63F", "icon": "fork", "agg": "sum", "precision": 0, "seedMin": 0, "seedMax": 220 },
+
+    "sleep": { "name": "Sleep", "unit": "hr", "color": "#5E5CE6", "icon": "bed", "agg": "sum", "precision": 1, "goal": 8, "seedMin": 5.5, "seedMax": 8.6 },
+
+    "mindful_minutes": { "name": "Mindful Minutes", "unit": "min", "color": "#65C6C9", "icon": "mind", "agg": "sum", "precision": 0, "seedMin": 0, "seedMax": 25 },
+
+    "blood_oxygen": { "name": "Blood Oxygen", "unit": "%", "color": "#4FD8E4", "icon": "lungs", "agg": "avg", "precision": 0, "seedMin": 95, "seedMax": 100 },
+    "respiratory_rate": { "name": "Respiratory Rate", "unit": "br/min", "color": "#4FD8E4", "icon": "lungs", "agg": "avg", "precision": 0, "seedMin": 12, "seedMax": 18 },
+
+    "systolic": { "name": "Blood Pressure (Systolic)", "unit": "mmHg", "color": "#FF375F", "icon": "pulse", "agg": "avg", "precision": 0, "seedMin": 112, "seedMax": 128, "seedEvery": 2 },
+    "diastolic": { "name": "Blood Pressure (Diastolic)", "unit": "mmHg", "color": "#FF375F", "icon": "pulse", "agg": "avg", "precision": 0, "seedMin": 70, "seedMax": 84, "seedEvery": 2 },
+    "body_temp": { "name": "Body Temperature", "unit": "°C", "color": "#FF9500", "icon": "pulse", "agg": "avg", "precision": 1, "seedMin": 36.4, "seedMax": 37.1, "seedEvery": 4 }
+  },
+  "favorites": ["steps", "heart_rate", "sleep", "active_energy", "distance", "weight"]
+}
