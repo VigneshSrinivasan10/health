@@ -1,31 +1,33 @@
 /* ===== Daily Check-in — simple mood journal ===== */
 
 :root {
-  --bg:      #f2f2f7;
+  --bg:      #f4f1fa;   /* soft warm lavender */
   --card:    #ffffff;
-  --ink:     #1c1c1e;
-  --muted:   #8a8a8e;
-  --muted-2: #b0b0b5;
-  --sep:     #e8e8ed;
-  --tint:    #7A5AF8;
-  --tint-2:  #5AC7A0;
-  --tab-bg:  rgba(249,249,249,.86);
+  --ink:     #2b2a33;   /* soft near-black, not harsh */
+  --muted:   #8b8896;
+  --muted-2: #b6b2c2;
+  --sep:     #ece8f4;
+  --tint:    #6c5ce7;   /* calm indigo */
+  --tint-2:  #57c79a;
+  --tab-bg:  rgba(255,255,255,.78);
   --radius:  16px;
-  --shadow:  0 1px 2px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.05);
+  --shadow:  0 1px 2px rgba(70,60,120,.05), 0 8px 22px rgba(70,60,120,.06);
   --sf: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bot: env(safe-area-inset-bottom, 0px);
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #000; --card: #1c1c1e; --ink: #fff; --muted: #98989f; --muted-2: #6a6a6e;
-    --sep: #38383a; --tab-bg: rgba(20,20,22,.82); --shadow: 0 1px 2px rgba(0,0,0,.4);
-  }
-}
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; height: 100%; }
-body { font-family: var(--sf); background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; overscroll-behavior-y: none; }
+body {
+  font-family: var(--sf); color: var(--ink);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(135% 70% at 12% -8%, #fdeef4 0%, rgba(253,238,244,0) 52%),
+    radial-gradient(125% 68% at 100% 0%, #e7defb 0%, rgba(231,222,251,0) 50%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased; overscroll-behavior-y: none;
+}
 button { font-family: inherit; cursor: pointer; }
 textarea { font-family: inherit; }
 
