@@ -1,42 +1,30 @@
-# Health — a local-only Apple Health clone
+# Daily Check-in — a simple mood journal
 
-A recreation of the **Apple Health** app as an installable, offline-first PWA.
-Track activity, heart, sleep, nutrition, body measurements and vitals — with the
-familiar Health look: activity rings, favorite cards, browsable categories, and
-per-metric detail charts (D / W / M / 6M / Y).
+An end-of-day mental-health check-in, as an installable, offline-first PWA.
+One question — *how are you feeling?* — then pick the moods behind it, rate how
+strong each one is, and jot a note if you want. That's it.
 
-- **Local-only.** Every reading lives in your browser via **PouchDB (IndexedDB)**.
-  Nothing is uploaded, shared, or synced. No accounts, no server.
+- **Simple by design.** No accounts, no dashboards, no noise. Open it, tap a face,
+  save.
+- **Local-only.** Every check-in lives in your browser via **PouchDB (IndexedDB)**.
+  Nothing is uploaded, shared, or synced.
 - **Offline-first PWA.** Installable to your home screen; works with no connection.
-- **No build step.** Plain HTML/CSS/JS + a JSON metric catalog. Light & dark mode.
-- **Comes to life on first run** with ~60 days of realistic sample data so you can
-  see the charts immediately. Wipe it any time from the **Sharing** tab.
+- **No build step.** Plain HTML/CSS/JS + an editable mood list. Light & dark mode.
 
-## What's inside
+## What it does
 
-**Summary** — today's date, the three **Activity rings** (Move / Exercise / Stand),
-your **Favorites** as at-a-glance cards with weekly sparklines, and a **Highlights**
-callout.
+**Check-in**
+- Choose how the day felt on a 5-point scale (Very Unpleasant → Very Pleasant).
+- Optionally tap the moods contributing to it (Calm, Grateful, Anxious, Tired…).
+- Rate how strong each selected mood is (1–5 dots).
+- Add a free-text note.
+- Save — it's logged with the date & time. Keeps a gentle day-streak.
 
-**Browse** — searchable Health Categories, each opening to its metrics:
-
-| Category | Metrics |
-| --- | --- |
-| Activity | Steps · Distance · Active Energy · Exercise Minutes · Stand Hours · Flights |
-| Body Measurements | Weight · Height · BMI · Body Fat · Lean Mass · Waist |
-| Heart | Heart Rate · Resting HR · Walking HR · HRV |
-| Nutrition | Dietary Energy · Water · Protein · Carbs · Fat · Caffeine |
-| Sleep | Sleep |
-| Mindfulness | Mindful Minutes |
-| Respiratory | Blood Oxygen · Respiratory Rate |
-| Vitals | Blood Pressure (Systolic / Diastolic) · Body Temperature |
-
-**Metric detail** — a big current value, a D/W/M/6M/Y bar or line chart with an
-average/total stat and a goal line, an **Add Data** button, and the recent-entries
-list (tap ✕ to delete an entry).
-
-**Sharing** — a reminder that your data stays on the device, plus **Export** /
-**Import** (JSON) and **reset / delete all** controls.
+**History**
+- Totals, current streak, and your average mood.
+- A two-week mood trend (a colored bar per day).
+- Every past check-in with its moods, ratings, and notes (tap ✕ to delete).
+- **Export / Import** your journal as JSON for backup.
 
 ## Run locally
 
@@ -47,68 +35,58 @@ python3 -m http.server 8080
 # open http://localhost:8080
 ```
 
-(Any static server works: `npx serve`, etc.)
-
 ## Deploy to GitHub Pages
 
 1. Push these files to a repo.
-2. Repo **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
-   branch `main` (or your branch), folder `/ (root)`.
-3. Your app is at `https://<you>.github.io/health/`. HTTPS is automatic, so the
+2. Repo **Settings → Pages → Source** → **GitHub Actions** (a workflow is included),
+   or **Deploy from a branch** → `main` / `/ (root)`.
+3. Your app is live at `https://<you>.github.io/health/`. HTTPS is automatic, so the
    service worker and "Add to Home Screen" work out of the box.
 
-All asset paths are **relative** (`./app.js`, `./data/…`) so it serves correctly from
-that `/health/` subpath. `.nojekyll` tells Pages to serve files as-is.
+Asset paths are **relative** so it serves fine from that subpath; `.nojekyll` tells
+Pages to serve files as-is.
 
 ### Install on your phone
 Open the Pages URL in Chrome/Safari → menu → **Add to Home Screen**. It launches
-standalone, full-screen, offline — with the white-heart Health icon.
+standalone and offline, with the check-in icon.
 
-## Add or edit metrics
+## Customize the moods
 
-Everything the app knows is described in `data/metrics.json`:
+Everything the app offers is in `data/moods.json` — edit and commit:
 
 ```json
-"steps": {
-  "name": "Steps", "unit": "steps", "color": "#FA5838", "icon": "flame",
-  "agg": "sum", "precision": 0, "goal": 10000, "seedMin": 3200, "seedMax": 13500
-}
+"moods": [
+  { "name": "Grateful", "tone": "pleasant" },
+  { "name": "Anxious",  "tone": "unpleasant" }
+]
 ```
 
-- `agg` — how a period is summarized: `sum` (steps, water), `avg` (heart rate),
-  or `latest` (weight, drawn as a line chart).
-- `color` / `icon` — the tile color and glyph (`flame`, `heart`, `body`, `fork`,
-  `bed`, `mind`, `lungs`, `pulse`, `drop`).
-- `goal` — optional; draws the dashed goal line and feeds the activity rings.
-- `seedMin` / `seedMax` (and `seedEvery` / `seedCount`) — the range used to generate
-  first-run sample data.
+`tone` (`pleasant` / `neutral` / `unpleasant`) just colors the chip. The 5-point
+face scale is in the same file under `scale`.
 
-Add the metric's id to a category's `metrics` list to make it browsable, and to
-`favorites` to pin it on Summary.
+## Your data
 
-## Data, backup, reset
-
-Everything is in a single local PouchDB named `health`. Use the **Sharing** tab to
-export a JSON backup, import one, reload sample data, or delete everything. From the
-console you can also wipe it entirely:
+Everything is in a single local PouchDB named `checkins`. Back it up any time from
+**History → Export**. To wipe it entirely from the console:
 
 ```js
-new PouchDB('health').destroy()
+new PouchDB('checkins').destroy()
 ```
 
 ## Files
 
 ```
-index.html              app shell (tab bar, add-data sheet) + PWA wiring
-styles.css              iOS Health look — grouped cards, rings, light + dark mode
-app.js                  data layer, rings, charts, navigation, logging, seeding
-data/metrics.json       the editable metric catalog (categories, units, colors, goals)
-vendor/pouchdb.min.js   vendored so it works offline (no CDN dependency)
-manifest.webmanifest    PWA manifest
-sw.js                   service worker (offline app shell)
-icons/                  app icons (192, 512, maskable, apple-touch, favicon)
-.nojekyll               serve files raw on GitHub Pages
+index.html            app shell + PWA wiring
+styles.css            calm, simple look — light + dark mode
+app.js                check-in flow, ratings, notes, history, storage
+data/moods.json       the editable mood list + the 5-point face scale
+vendor/pouchdb.min.js vendored so it works offline (no CDN dependency)
+manifest.webmanifest  PWA manifest
+sw.js                 service worker (offline app shell)
+icons/                app icons
+.nojekyll             serve files raw on GitHub Pages
 ```
 
-*Health data shown is sample/manual only — this app does not read from Apple HealthKit
-or any device sensors, and the figures are illustrative, not medical advice.*
+*This is a personal journaling tool, not a medical device or a substitute for
+professional care. If you're struggling, please reach out to someone you trust or a
+local support line.*

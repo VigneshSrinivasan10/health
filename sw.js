@@ -1,5 +1,5 @@
-/* Health service worker — offline-first app shell */
-const VERSION = "health-v1";
+/* Daily Check-in service worker — offline-first app shell */
+const VERSION = "checkin-v1";
 const SHELL = VERSION + "-shell";
 
 const PRECACHE = [
@@ -7,7 +7,7 @@ const PRECACHE = [
   "./index.html",
   "./styles.css",
   "./app.js",
-  "./data/metrics.json",
+  "./data/moods.json",
   "./vendor/pouchdb.min.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",

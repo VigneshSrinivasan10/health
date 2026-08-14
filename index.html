@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-  <title>Health</title>
-  <meta name="description" content="A local-only recreation of the Apple Health app. Track activity, heart, sleep, nutrition and more — your data never leaves this device." />
+  <title>Daily Check-in</title>
+  <meta name="description" content="A simple end-of-day mood check-in. How are you feeling? Pick your moods, rate them, jot a note. Local-only — your journal never leaves this device." />
 
-  <!-- PWA -->
   <link rel="manifest" href="./manifest.webmanifest" />
   <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
@@ -14,67 +13,24 @@
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Health" />
+  <meta name="apple-mobile-web-app-title" content="Check-in" />
 
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div class="app">
-    <!-- Main scrolling area; screens are rendered by app.js -->
     <main id="view" class="view"></main>
-
-    <!-- Detail overlay (pushed screen) -->
-    <div id="detail" class="detail" aria-hidden="true"></div>
-
-    <!-- Bottom tab bar -->
-    <nav class="tabbar" id="tabbar">
-      <button class="tab active" data-tab="summary">
-        <svg viewBox="0 0 24 24" class="tab-ic"><path d="M12 21s-7.5-4.9-10-9.2C.3 8.5 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.5 3 6.8C19.5 16.1 12 21 12 21z"/></svg>
-        <span>Summary</span>
+    <nav class="tabbar">
+      <button class="tab active" data-tab="today">
+        <svg viewBox="0 0 24 24" class="tab-ic" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/><path d="M8.5 14.5a4 4 0 0 0 7 0" stroke-linecap="round"/></svg>
+        <span>Check-in</span>
       </button>
-      <button class="tab" data-tab="sharing">
-        <svg viewBox="0 0 24 24" class="tab-ic" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>
-        <span>Sharing</span>
-      </button>
-      <button class="tab" data-tab="browse">
-        <svg viewBox="0 0 24 24" class="tab-ic" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg>
-        <span>Browse</span>
+      <button class="tab" data-tab="history">
+        <svg viewBox="0 0 24 24" class="tab-ic" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h16" stroke-linecap="round"/></svg>
+        <span>History</span>
       </button>
     </nav>
   </div>
-
-  <!-- Add Data modal -->
-  <div class="sheet-bg" id="addBg" aria-hidden="true">
-    <div class="sheet" role="dialog" aria-modal="true">
-      <div class="sheet-head">
-        <button class="sheet-btn" id="addCancel">Cancel</button>
-        <div class="sheet-title" id="addTitle">Add Data</div>
-        <button class="sheet-btn strong" id="addSave">Add</button>
-      </div>
-      <div class="sheet-body">
-        <div class="form-row">
-          <label>Date &amp; time</label>
-          <input type="datetime-local" id="addWhen" />
-        </div>
-        <div class="form-row" id="addValueRow">
-          <label id="addValueLabel">Value</label>
-          <div class="value-input">
-            <input type="number" id="addValue" inputmode="decimal" step="any" placeholder="0" />
-            <span class="value-unit" id="addUnit"></span>
-          </div>
-        </div>
-        <div class="form-row" id="addValueRow2" style="display:none">
-          <label id="addValueLabel2">Value</label>
-          <div class="value-input">
-            <input type="number" id="addValue2" inputmode="decimal" step="any" placeholder="0" />
-            <span class="value-unit" id="addUnit2"></span>
-          </div>
-        </div>
-        <p class="form-hint" id="addHint"></p>
-      </div>
-    </div>
-  </div>
-
   <div class="toast" id="toast"></div>
 
   <script src="./vendor/pouchdb.min.js"></script>

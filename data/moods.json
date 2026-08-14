@@ -1,0 +1,33 @@
+{
+  "scale": [
+    { "v": 1, "label": "Very Unpleasant", "emoji": "😞", "color": "#7A5AF8" },
+    { "v": 2, "label": "Unpleasant", "emoji": "😕", "color": "#6C8BF0" },
+    { "v": 3, "label": "Neutral", "emoji": "😐", "color": "#63B3C9" },
+    { "v": 4, "label": "Pleasant", "emoji": "🙂", "color": "#57C79A" },
+    { "v": 5, "label": "Very Pleasant", "emoji": "😄", "color": "#5AC77A" }
+  ],
+  "moods": [
+    { "name": "Happy", "tone": "pleasant" },
+    { "name": "Calm", "tone": "pleasant" },
+    { "name": "Grateful", "tone": "pleasant" },
+    { "name": "Content", "tone": "pleasant" },
+    { "name": "Energized", "tone": "pleasant" },
+    { "name": "Hopeful", "tone": "pleasant" },
+    { "name": "Confident", "tone": "pleasant" },
+    { "name": "Proud", "tone": "pleasant" },
+    { "name": "Relaxed", "tone": "pleasant" },
+    { "name": "Okay", "tone": "neutral" },
+    { "name": "Indifferent", "tone": "neutral" },
+    { "name": "Restless", "tone": "neutral" },
+    { "name": "Tired", "tone": "unpleasant" },
+    { "name": "Stressed", "tone": "unpleasant" },
+    { "name": "Anxious", "tone": "unpleasant" },
+    { "name": "Sad", "tone": "unpleasant" },
+    { "name": "Angry", "tone": "unpleasant" },
+    { "name": "Frustrated", "tone": "unpleasant" },
+    { "name": "Overwhelmed", "tone": "unpleasant" },
+    { "name": "Lonely", "tone": "unpleasant" },
+    { "name": "Bored", "tone": "unpleasant" },
+    { "name": "Discouraged", "tone": "unpleasant" }
+  ]
+}
