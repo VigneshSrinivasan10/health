@@ -15,6 +15,8 @@ const state = {
   note: "",
   segment: null, // morning | afternoon | evening (defaults to now)
   filter: "all", // history filter by segment
+  editId: null,  // _id of the check-in being edited (null = new)
+  editTs: null,  // its original timestamp, for the banner
 };
 
 /* time-of-day segments */
@@ -55,6 +57,22 @@ function toast(msg) {
 async function saveCheckin() {
   const rated = Object.entries(state.ratings).filter(([, r]) => r > 0);
   if (!rated.length) { toast("Rate at least one emotion first"); return; }
+  const emotions = rated.map(([name, rating]) => ({ name, rating, tone: toneOf(name) }));
+
+  if (state.editId) {
+    // update the existing check-in in place (keep its original date/time)
+    const doc = await db.get(state.editId);
+    doc.emotions = emotions;
+    doc.note = state.note.trim();
+    doc.segment = state.segment || currentSegId();
+    await db.put(doc);
+    clearDraft();
+    toast("Updated ✓");
+    state.tab = "history";
+    render();
+    return;
+  }
+
   const now = new Date();
   await db.put({
     _id: `checkin_${now.getTime()}`,
@@ -63,11 +81,34 @@ async function saveCheckin() {
     date: now.toISOString(),
     day: dayKey(now),
     segment: state.segment || currentSegId(),
-    emotions: rated.map(([name, rating]) => ({ name, rating, tone: toneOf(name) })),
+    emotions,
     note: state.note.trim(),
   });
-  state.ratings = {}; state.note = ""; state.segment = currentSegId();
+  clearDraft();
   toast("Checked in 💜");
+  render();
+}
+
+function clearDraft() {
+  state.ratings = {}; state.note = ""; state.segment = currentSegId();
+  state.editId = null; state.editTs = null;
+}
+
+async function loadForEdit(id) {
+  const doc = await db.get(id);
+  state.editId = id;
+  state.editTs = doc.ts;
+  state.ratings = {};
+  (doc.emotions || []).forEach((m) => { state.ratings[m.name] = m.rating; });
+  state.note = doc.note || "";
+  state.segment = entrySeg(doc);
+  state.tab = "today";
+  render();
+}
+
+function cancelEdit() {
+  clearDraft();
+  state.tab = "history";
   render();
 }
 
@@ -146,12 +187,17 @@ async function renderToday() {
       ${s.label}
     </button>`).join("");
 
+  const editing = !!state.editId;
+  const editWhen = editing ? new Date(state.editTs).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }) : "";
+
   view.innerHTML = `
     <div class="lg-head">
-      <div class="lg-sub">${esc(dateStr)}${st ? ` · 🔥 ${st}-day streak` : ""}</div>
-      <h1>How are you feeling?</h1>
+      <div class="lg-sub">${editing ? "Editing a check-in" : esc(dateStr) + (st ? ` · 🔥 ${st}-day streak` : "")}</div>
+      <h1>${editing ? "Edit check-in" : "How are you feeling?"}</h1>
       <p class="lead">Tap the emotions you're feeling, then set how strong each one is.</p>
     </div>
+
+    ${editing ? `<div class="edit-banner"><span>${esc(editWhen)}</span><button id="cancelEdit">Cancel</button></div>` : ""}
 
     <div class="seg-tabs">${segTabs}</div>
 
@@ -166,9 +212,9 @@ async function renderToday() {
       <textarea id="note" rows="4" placeholder="Anything on your mind about today?">${esc(state.note)}</textarea>
     </div>
 
-    <button class="save-btn ${count ? "" : "disabled"}" id="saveBtn">Save</button>
+    <button class="save-btn ${count ? "" : "disabled"}" id="saveBtn">${editing ? "Save changes" : "Save"}</button>
 
-    ${entries.length ? `
+    ${!editing && entries.length ? `
       <div class="group-label">Recent</div>
       <div class="card list-card">${entries.slice(0, 3).map((e) => entryRow(e, true)).join("")}</div>` : ""}
   `;
@@ -200,6 +246,8 @@ function wireToday() {
   const note = $("#note", view);
   if (note) note.oninput = () => { state.note = note.value; };
   $("#saveBtn", view).onclick = saveCheckin;
+  const cancel = $("#cancelEdit", view);
+  if (cancel) cancel.onclick = cancelEdit;
 }
 
 /* =========================================================================
@@ -233,7 +281,7 @@ async function renderHistory() {
     <div class="group-label">Mood balance <span class="hint">last 2 weeks</span></div>
     <div class="card trend-card">${trendBars(trend(entries, 14))}<div class="trend-legend"><span><i style="background:${toneColor("pleasant")}"></i>pleasant</span><span><i style="background:${toneColor("unpleasant")}"></i>difficult</span></div></div>
 
-    <div class="group-label">All check-ins</div>
+    <div class="group-label">All check-ins <span class="hint">tap an entry to edit</span></div>
     <div class="filter-row" id="filterRow">
       ${[{ id: "all", label: "All" }, ...SEGMENTS].map((s) => `<button class="filter-chip ${state.filter === s.id ? "active" : ""}" data-f="${s.id}">${s.label}</button>`).join("")}
     </div>
@@ -249,6 +297,9 @@ async function renderHistory() {
 
   view.querySelectorAll(".filter-chip").forEach((b) => {
     b.onclick = () => { state.filter = b.dataset.f; renderHistory(); };
+  });
+  view.querySelectorAll(".entry.editable").forEach((row) => {
+    row.onclick = () => loadForEdit(row.dataset.eid);
   });
   view.querySelectorAll(".del-btn").forEach((b) => {
     b.onclick = async (e) => { e.stopPropagation(); await deleteCheckin(b.dataset.id); toast("Deleted"); renderHistory(); };
@@ -266,7 +317,7 @@ function entryRow(e, compact) {
   const net = netScore(e.emotions);
   const netCls = net > 0 ? "pos" : net < 0 ? "neg" : "neu";
   return `
-    <div class="entry">
+    <div class="entry ${compact ? "" : "editable"}" ${compact ? "" : `data-eid="${e._id}"`}>
       <div class="entry-main">
         <div class="entry-head">
           <span class="entry-when">${when}</span>

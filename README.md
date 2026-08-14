@@ -27,7 +27,8 @@ strong each one is, and jot a note if you want. That's it.
 - A two-week **mood balance** chart — a bar per day, up (green) when pleasant
   emotions outweighed difficult ones, down (purple) when they didn't.
 - Every past check-in with its time-of-day badge, rated emotions, a net score, and
-  notes (tap ✕ to delete).
+  notes. **Tap an entry to edit it** — it reopens in the check-in editor with
+  everything prefilled, and saving updates it in place; tap ✕ to delete.
 - **Filter** the list by Morning / Afternoon / Evening.
 - **Export / Import** your journal as JSON for backup.
 

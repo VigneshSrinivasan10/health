@@ -43,6 +43,16 @@ textarea { font-family: inherit; }
 .lg-sub { color: var(--muted); font-size: 14px; font-weight: 600; }
 
 .lead { color: var(--muted); font-size: 15px; line-height: 1.45; margin: 8px 0 0; }
+
+/* editing banner */
+.edit-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: color-mix(in srgb, var(--tint) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--tint) 26%, transparent);
+  color: var(--tint); border-radius: 12px; padding: 10px 12px 10px 15px;
+  font-size: 14px; font-weight: 700; margin: 14px 0 2px;
+}
+.edit-banner button { background: var(--tint); color: #fff; border: 0; border-radius: 999px; padding: 6px 15px; font-size: 13px; font-weight: 600; }
 .group-label { font-size: 14px; font-weight: 700; color: var(--muted); margin: 22px 2px 10px; text-transform: uppercase; letter-spacing: .04em; }
 .group-label .hint { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--muted-2); }
 
@@ -107,6 +117,8 @@ textarea { font-family: inherit; }
 .list-card { padding: 0; overflow: hidden; }
 .entry { display: flex; gap: 12px; padding: 14px; border-top: 1px solid var(--sep); align-items: flex-start; }
 .entry:first-child { border-top: 0; }
+.entry.editable { cursor: pointer; transition: background .12s ease; }
+.entry.editable:active { background: color-mix(in srgb, var(--tint) 7%, transparent); }
 .entry-emoji { font-size: 26px; line-height: 1; flex: 0 0 auto; margin-top: 2px; }
 .entry-main { flex: 1; min-width: 0; }
 .entry-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
