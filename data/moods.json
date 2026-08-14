@@ -19,6 +19,7 @@
     { "name": "Okay", "tone": "neutral" },
     { "name": "Indifferent", "tone": "neutral" },
     { "name": "Restless", "tone": "neutral" },
+    { "name": "Hyper", "tone": "neutral" },
     { "name": "Tired", "tone": "unpleasant" },
     { "name": "Stressed", "tone": "unpleasant" },
     { "name": "Anxious", "tone": "unpleasant" },
