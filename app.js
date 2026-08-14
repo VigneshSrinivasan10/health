@@ -1,6 +1,6 @@
 /* ===========================================================================
-   Daily Check-in — a simple end-of-day mood journal.
-   Pick how you're feeling, choose moods, rate them, add a note.
+   Daily Check-in — rate your emotions at the end of the day.
+   A list of emotions, each with a 1–5 intensity rating, plus an optional note.
    Plain HTML/CSS/JS + PouchDB (IndexedDB). Local-only. No server, no build.
    =========================================================================== */
 
@@ -11,8 +11,7 @@ const db = new PouchDB("checkins");
 let CATALOG = null;
 const state = {
   tab: "today",
-  valence: null,          // 1..5
-  moods: {},              // { name: rating(1..5) }
+  ratings: {},   // { emotionName: 1..5 }
   note: "",
 };
 
@@ -21,8 +20,8 @@ const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pad = (n) => String(n).padStart(2, "0");
 const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const scaleFor = (v) => CATALOG.scale.find((s) => s.v === v);
-const toneColor = (t) => (t === "pleasant" ? "#57C79A" : t === "unpleasant" ? "#8C7BF0" : "#7F8C99");
+const toneOf = (name) => (CATALOG.moods.find((m) => m.name === name) || {}).tone || "neutral";
+const toneColor = (t) => (t === "pleasant" ? "#3CC28B" : t === "unpleasant" ? "#8C7BF0" : "#7F8C99");
 
 function toast(msg) {
   const t = $("#toast");
@@ -32,48 +31,71 @@ function toast(msg) {
 
 /* ---- data --------------------------------------------------------------- */
 async function saveCheckin() {
-  if (!state.valence) { toast("Pick how you're feeling first"); return; }
+  const rated = Object.entries(state.ratings).filter(([, r]) => r > 0);
+  if (!rated.length) { toast("Rate at least one emotion first"); return; }
   const now = new Date();
-  const doc = {
+  await db.put({
     _id: `checkin_${now.getTime()}`,
     type: "checkin",
     ts: now.getTime(),
     date: now.toISOString(),
     day: dayKey(now),
-    valence: state.valence,
-    moods: Object.entries(state.moods).map(([name, rating]) => ({ name, rating })),
+    emotions: rated.map(([name, rating]) => ({ name, rating, tone: toneOf(name) })),
     note: state.note.trim(),
-  };
-  await db.put(doc);
-  state.valence = null; state.moods = {}; state.note = "";
+  });
+  state.ratings = {}; state.note = "";
   toast("Checked in 💜");
   render();
 }
 
 async function allCheckins() {
-  const res = await db.allDocs({
-    include_docs: true, startkey: "checkin_", endkey: "checkin_￰",
-  });
+  const res = await db.allDocs({ include_docs: true, startkey: "checkin_", endkey: "checkin_￰" });
   return res.rows.map((r) => r.doc).sort((a, b) => b.ts - a.ts);
 }
 
-async function deleteCheckin(id) {
-  const d = await db.get(id); await db.remove(d);
-}
+async function deleteCheckin(id) { const d = await db.get(id); await db.remove(d); }
 
 function streak(entries) {
   if (!entries.length) return 0;
   const days = new Set(entries.map((e) => e.day));
   let n = 0; const d = new Date();
-  // allow the streak to count from today or yesterday
   if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
   while (days.has(dayKey(d))) { n += 1; d.setDate(d.getDate() - 1); }
   return n;
 }
 
+/* net emotional balance for a check-in: pleasant adds, unpleasant subtracts */
+function netScore(emotions) {
+  return (emotions || []).reduce((s, e) => {
+    const t = e.tone || toneOf(e.name);
+    return s + (t === "pleasant" ? e.rating : t === "unpleasant" ? -e.rating : 0);
+  }, 0);
+}
+
 /* =========================================================================
-   CHECK-IN SCREEN
+   CHECK-IN SCREEN — the emotions dashboard
    ========================================================================= */
+function ratingDots(name) {
+  const cur = state.ratings[name] || 0;
+  return `<div class="dots" data-emo="${esc(name)}">
+    ${[1, 2, 3, 4, 5].map((i) => `<button class="dot ${i <= cur ? "on" : ""}" data-r="${i}" style="--dc:${toneColor(toneOf(name))}"></button>`).join("")}
+  </div>`;
+}
+
+function emotionGroup(label, tone) {
+  const list = CATALOG.moods.filter((m) => m.tone === tone);
+  if (!list.length) return "";
+  return `
+    <div class="group-label" style="color:${toneColor(tone)}">${label}</div>
+    <div class="card rating-card">
+      ${list.map((m) => `
+        <div class="rate-row ${state.ratings[m.name] ? "active" : ""}">
+          <span class="rr-name">${esc(m.name)}</span>
+          ${ratingDots(m.name)}
+        </div>`).join("")}
+    </div>`;
+}
+
 async function renderToday() {
   const view = $("#view");
   const now = new Date();
@@ -81,84 +103,51 @@ async function renderToday() {
   const entries = await allCheckins();
   const st = streak(entries);
   const doneToday = entries.some((e) => e.day === dayKey(now));
-
-  const faces = CATALOG.scale.map((s) => `
-    <button class="face ${state.valence === s.v ? "sel" : ""}" data-v="${s.v}" style="--fc:${s.color}">
-      <span class="face-emoji">${s.emoji}</span>
-      <span class="face-label">${esc(s.label)}</span>
-    </button>`).join("");
-
-  const chips = CATALOG.moods.map((m) => `
-    <button class="chip ${state.moods[m.name] != null ? "sel" : ""}" data-mood="${esc(m.name)}" style="--tc:${toneColor(m.tone)}">${esc(m.name)}</button>`).join("");
-
-  const selected = Object.keys(state.moods);
-  const ratingsBlock = selected.length ? `
-    <div class="section-label">How strong? <span class="hint">tap the dots</span></div>
-    <div class="card ratings">
-      ${selected.map((name) => `
-        <div class="rating-row">
-          <span class="rr-name">${esc(name)}</span>
-          <div class="dots" data-mood="${esc(name)}">
-            ${[1, 2, 3, 4, 5].map((i) => `<button class="dot ${i <= state.moods[name] ? "on" : ""}" data-r="${i}"></button>`).join("")}
-          </div>
-        </div>`).join("")}
-    </div>` : "";
+  const count = Object.values(state.ratings).filter((r) => r > 0).length;
 
   view.innerHTML = `
     <div class="lg-head">
       <div class="lg-sub">${esc(dateStr)}${st ? ` · 🔥 ${st}-day streak` : ""}</div>
       <h1>How are you feeling?</h1>
+      <p class="lead">Rate how strongly you feel each emotion today. Skip the ones that don't apply.</p>
     </div>
 
-    <div class="faces">${faces}</div>
+    ${emotionGroup("Pleasant", "pleasant")}
+    ${emotionGroup("Neutral", "neutral")}
+    ${emotionGroup("Difficult", "unpleasant")}
 
-    <div class="section-label">What's contributing? <span class="hint">optional</span></div>
-    <div class="card"><div class="chips">${chips}</div></div>
-
-    ${ratingsBlock}
-
-    <div class="section-label">Notes <span class="hint">optional</span></div>
+    <div class="group-label">Notes <span class="hint">optional</span></div>
     <div class="card note-card">
       <textarea id="note" rows="4" placeholder="Anything on your mind about today?">${esc(state.note)}</textarea>
     </div>
 
-    <button class="save-btn ${state.valence ? "" : "disabled"}" id="saveBtn">${doneToday ? "Add another check-in" : "Save today's check-in"}</button>
+    <button class="save-btn ${count ? "" : "disabled"}" id="saveBtn">
+      ${count ? `Save check-in${count ? ` · ${count} rated` : ""}` : "Rate an emotion to save"}
+    </button>
 
-    ${entries.length ? recentPeek(entries.slice(0, 3)) : `<p class="empty-note">Your check-ins will show up here and in History.</p>`}
+    ${entries.length ? `
+      <div class="group-label">Recent</div>
+      <div class="card list-card">${entries.slice(0, 3).map((e) => entryRow(e, true)).join("")}</div>` : ""}
   `;
-
   wireToday();
-}
-
-function recentPeek(entries) {
-  return `
-    <div class="section-label">Recent</div>
-    <div class="card list-card">
-      ${entries.map((e) => entryRow(e, true)).join("")}
-    </div>`;
 }
 
 function wireToday() {
   const view = $("#view");
-  view.querySelectorAll(".face").forEach((b) => {
-    b.onclick = () => { state.valence = Number(b.dataset.v); renderToday(); };
-  });
-  view.querySelectorAll(".chip").forEach((b) => {
-    b.onclick = () => {
-      const name = b.dataset.mood;
-      if (state.moods[name] != null) delete state.moods[name];
-      else state.moods[name] = 3;   // default intensity
-      renderToday();
-    };
-  });
   view.querySelectorAll(".dots").forEach((row) => {
+    const name = row.dataset.emo;
     row.querySelectorAll(".dot").forEach((d) => {
-      d.onclick = () => { state.moods[row.dataset.mood] = Number(d.dataset.r); renderToday(); };
+      d.onclick = () => {
+        const r = Number(d.dataset.r);
+        state.ratings[name] = (state.ratings[name] === r) ? 0 : r;  // tap same value to clear
+        if (state.ratings[name] === 0) delete state.ratings[name];
+        renderToday();
+      };
     });
   });
   const note = $("#note", view);
   if (note) note.oninput = () => { state.note = note.value; };
-  $("#saveBtn", view).onclick = () => { if (state.valence) saveCheckin(); else toast("Pick how you're feeling first"); };
+  $("#saveBtn", view).onclick = saveCheckin;
 }
 
 /* =========================================================================
@@ -172,31 +161,27 @@ async function renderHistory() {
     view.innerHTML = `
       <div class="lg-head"><h1>History</h1></div>
       <div class="card empty-card">
-        <div class="empty-emoji">🗒️</div>
-        <p>No check-ins yet. Head to <b>Check-in</b> and log how today felt.</p>
+        <div class="empty-emoji">📊</div>
+        <p>No check-ins yet. Head to <b>Check-in</b> and rate how today felt.</p>
       </div>`;
     return;
   }
 
   const st = streak(entries);
-  const last14 = trend(entries, 14);
-
   view.innerHTML = `
     <div class="lg-head"><h1>History</h1></div>
 
     <div class="card summary-card">
       <div class="stat"><div class="stat-num">${entries.length}</div><div class="stat-lbl">check-ins</div></div>
       <div class="stat"><div class="stat-num">${st}</div><div class="stat-lbl">day streak</div></div>
-      <div class="stat"><div class="stat-num">${avgValence(entries)}</div><div class="stat-lbl">avg mood</div></div>
+      <div class="stat"><div class="stat-num small">${esc(topEmotion(entries))}</div><div class="stat-lbl">most rated</div></div>
     </div>
 
-    <div class="section-label">Last 2 weeks</div>
-    <div class="card trend-card">${trendBars(last14)}</div>
+    <div class="group-label">Mood balance <span class="hint">last 2 weeks</span></div>
+    <div class="card trend-card">${trendBars(trend(entries, 14))}<div class="trend-legend"><span><i style="background:${toneColor("pleasant")}"></i>pleasant</span><span><i style="background:${toneColor("unpleasant")}"></i>difficult</span></div></div>
 
-    <div class="section-label">All check-ins</div>
-    <div class="card list-card">
-      ${entries.map((e) => entryRow(e, false)).join("")}
-    </div>
+    <div class="group-label">All check-ins</div>
+    <div class="card list-card">${entries.map((e) => entryRow(e, false)).join("")}</div>
 
     <div class="tools">
       <button class="tool-btn" id="exportBtn">Export</button>
@@ -215,48 +200,58 @@ async function renderHistory() {
 }
 
 function entryRow(e, compact) {
-  const s = scaleFor(e.valence) || {};
-  const moods = (e.moods || []).map((m) => `<span class="tag">${esc(m.name)}${m.rating ? ` <b>${m.rating}</b>` : ""}</span>`).join("");
+  const emos = (e.emotions || []).slice().sort((a, b) => b.rating - a.rating);
+  const tags = emos.map((m) => `<span class="tag" style="--tc:${toneColor(m.tone || toneOf(m.name))}">${esc(m.name)} <b>${m.rating}</b></span>`).join("");
   const when = new Date(e.ts).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   const time = new Date(e.ts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const net = netScore(e.emotions);
+  const netCls = net > 0 ? "pos" : net < 0 ? "neg" : "neu";
   return `
     <div class="entry">
-      <div class="entry-emoji" title="${esc(s.label || "")}">${s.emoji || "•"}</div>
       <div class="entry-main">
-        <div class="entry-head"><span class="entry-when">${when}</span><span class="entry-time">${time}</span></div>
-        <div class="entry-mood-label" style="color:${s.color || "var(--muted)"}">${esc(s.label || "")}</div>
-        ${moods ? `<div class="entry-tags">${moods}</div>` : ""}
+        <div class="entry-head">
+          <span class="entry-when">${when}</span><span class="entry-time">${time}</span>
+          <span class="net ${netCls}">${net > 0 ? "+" : ""}${net}</span>
+        </div>
+        ${tags ? `<div class="entry-tags">${tags}</div>` : ""}
         ${e.note ? `<div class="entry-note">${esc(e.note)}</div>` : ""}
       </div>
       ${compact ? "" : `<button class="del-btn" data-id="${e._id}" title="Delete">✕</button>`}
     </div>`;
 }
 
-function avgValence(entries) {
-  const a = entries.reduce((s, e) => s + e.valence, 0) / entries.length;
-  return (scaleFor(Math.round(a)) || {}).emoji || a.toFixed(1);
+function topEmotion(entries) {
+  const totals = {};
+  entries.forEach((e) => (e.emotions || []).forEach((m) => { totals[m.name] = (totals[m.name] || 0) + m.rating; }));
+  const top = Object.entries(totals).sort((a, b) => b[1] - a[1])[0];
+  return top ? top[0] : "—";
 }
 
 function trend(entries, days) {
   const byDay = {};
-  entries.forEach((e) => { (byDay[e.day] = byDay[e.day] || []).push(e.valence); });
-  const out = [];
-  const d = new Date();
+  entries.forEach((e) => { (byDay[e.day] = byDay[e.day] || []).push(netScore(e.emotions)); });
+  const out = []; const d = new Date();
   for (let i = days - 1; i >= 0; i -= 1) {
     const dd = new Date(d); dd.setDate(d.getDate() - i);
-    const key = dayKey(dd);
-    const vals = byDay[key];
-    out.push({ key, label: dd.getDate(), avg: vals ? vals.reduce((a, b) => a + b, 0) / vals.length : null, dow: dd.getDay() });
+    const key = dayKey(dd); const nets = byDay[key];
+    out.push({ key, net: nets ? nets.reduce((a, b) => a + b, 0) / nets.length : null });
   }
   return out;
 }
 
+/* diverging bar chart around a center line */
 function trendBars(data) {
+  const maxAbs = Math.max(4, ...data.map((d) => Math.abs(d.net || 0)));
   return `<div class="trend">${data.map((d) => {
-    if (d.avg == null) return `<span class="tb empty" title="${d.key}: no check-in"></span>`;
-    const s = scaleFor(Math.round(d.avg)) || {};
-    const h = 20 + (d.avg / 5) * 80;
-    return `<span class="tb" style="height:${h}%;background:${s.color}" title="${d.key}: ${s.label}"></span>`;
+    if (d.net == null) return `<span class="tcol"><span class="tb empty"></span></span>`;
+    const frac = Math.min(1, Math.abs(d.net) / maxAbs);
+    const h = 6 + frac * 44; // px from center
+    const up = d.net >= 0;
+    const color = up ? toneColor("pleasant") : toneColor("unpleasant");
+    return `<span class="tcol" title="${d.key}: ${d.net > 0 ? "+" : ""}${d.net.toFixed(1)}">
+      <span class="tb ${up ? "up" : "spacer"}" style="${up ? `height:${h}px;background:${color}` : ""}"></span>
+      <span class="tb ${up ? "spacer" : "down"}" style="${up ? "" : `height:${h}px;background:${color}`}"></span>
+    </span>`;
   }).join("")}</div>`;
 }
 
@@ -264,8 +259,7 @@ function trendBars(data) {
 async function exportData(entries) {
   const blob = new Blob([JSON.stringify({ app: "daily-checkin", exported: new Date().toISOString(), checkins: entries }, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = `checkins-${dayKey(new Date())}.json`; a.click();
+  const a = document.createElement("a"); a.href = url; a.download = `checkins-${dayKey(new Date())}.json`; a.click();
   URL.revokeObjectURL(url); toast("Exported");
 }
 
@@ -275,10 +269,13 @@ async function importData(e) {
     const data = JSON.parse(await file.text());
     let n = 0;
     for (const c of (data.checkins || [])) {
-      if (c.valence == null) continue;
+      const emotions = c.emotions || [];
+      if (!emotions.length) continue;
       const ts = c.ts || Date.parse(c.date) || Date.now();
-      const doc = { _id: `checkin_${ts}`, type: "checkin", ts, date: new Date(ts).toISOString(), day: dayKey(new Date(ts)), valence: c.valence, moods: c.moods || [], note: c.note || "" };
-      try { await db.put(doc); n += 1; } catch (_) { /* skip dupes */ }
+      try {
+        await db.put({ _id: `checkin_${ts}`, type: "checkin", ts, date: new Date(ts).toISOString(), day: dayKey(new Date(ts)), emotions, note: c.note || "" });
+        n += 1;
+      } catch (_) { /* skip dupes */ }
     }
     toast(`Imported ${n} check-ins`); renderHistory();
   } catch (err) { toast("Could not read that file"); }
