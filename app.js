@@ -105,14 +105,26 @@ function ratingDots(name) {
   </div>`;
 }
 
+/* board: tap an emotion to pick it */
 function emotionGroup(label, tone) {
   const list = CATALOG.moods.filter((m) => m.tone === tone);
   if (!list.length) return "";
   return `
     <div class="group-label" style="color:${toneColor(tone)}">${label}</div>
+    <div class="card chip-card"><div class="chips">
+      ${list.map((m) => `<button class="chip ${state.ratings[m.name] != null ? "sel" : ""}" data-emo="${esc(m.name)}" style="--tc:${toneColor(tone)}">${esc(m.name)}</button>`).join("")}
+    </div></div>`;
+}
+
+/* the picked emotions, with their 1–5 level dots, gathered at the bottom */
+function selectedLevels() {
+  const picked = CATALOG.moods.filter((m) => state.ratings[m.name] != null);
+  if (!picked.length) return "";
+  return `
+    <div class="group-label">How strong? <span class="hint">tap the dots</span></div>
     <div class="card rating-card">
-      ${list.map((m) => `
-        <div class="rate-row ${state.ratings[m.name] ? "active" : ""}">
+      ${picked.map((m) => `
+        <div class="rate-row active">
           <span class="rr-name">${esc(m.name)}</span>
           ${ratingDots(m.name)}
         </div>`).join("")}
@@ -138,7 +150,7 @@ async function renderToday() {
     <div class="lg-head">
       <div class="lg-sub">${esc(dateStr)}${st ? ` · 🔥 ${st}-day streak` : ""}</div>
       <h1>How are you feeling?</h1>
-      <p class="lead">Rate how strongly you feel each emotion. Skip the ones that don't apply.</p>
+      <p class="lead">Tap the emotions you're feeling, then set how strong each one is.</p>
     </div>
 
     <div class="seg-tabs">${segTabs}</div>
@@ -147,14 +159,14 @@ async function renderToday() {
     ${emotionGroup("Neutral", "neutral")}
     ${emotionGroup("Difficult", "unpleasant")}
 
+    ${selectedLevels()}
+
     <div class="group-label">Notes <span class="hint">optional</span></div>
     <div class="card note-card">
       <textarea id="note" rows="4" placeholder="Anything on your mind about today?">${esc(state.note)}</textarea>
     </div>
 
-    <button class="save-btn ${count ? "" : "disabled"}" id="saveBtn">
-      ${count ? `Save check-in${count ? ` · ${count} rated` : ""}` : "Rate an emotion to save"}
-    </button>
+    <button class="save-btn ${count ? "" : "disabled"}" id="saveBtn">Save</button>
 
     ${entries.length ? `
       <div class="group-label">Recent</div>
@@ -171,15 +183,18 @@ function wireToday() {
       view.querySelectorAll(".seg").forEach((x) => x.classList.toggle("active", x === b));
     };
   });
+  view.querySelectorAll(".chip").forEach((b) => {
+    b.onclick = () => {
+      const name = b.dataset.emo;
+      if (state.ratings[name] != null) delete state.ratings[name];   // tap again to remove
+      else state.ratings[name] = 3;                                  // default middle level
+      renderToday();
+    };
+  });
   view.querySelectorAll(".dots").forEach((row) => {
     const name = row.dataset.emo;
     row.querySelectorAll(".dot").forEach((d) => {
-      d.onclick = () => {
-        const r = Number(d.dataset.r);
-        state.ratings[name] = (state.ratings[name] === r) ? 0 : r;  // tap same value to clear
-        if (state.ratings[name] === 0) delete state.ratings[name];
-        renderToday();
-      };
+      d.onclick = () => { state.ratings[name] = Number(d.dataset.r); renderToday(); };
     });
   });
   const note = $("#note", view);
