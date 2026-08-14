@@ -13,7 +13,29 @@ const state = {
   tab: "today",
   ratings: {},   // { emotionName: 1..5 }
   note: "",
+  segment: null, // morning | afternoon | evening (defaults to now)
+  filter: "all", // history filter by segment
 };
+
+/* time-of-day segments */
+const SEGMENTS = [
+  { id: "morning", label: "Morning", start: 0, end: 12, color: "#E8952E" },
+  { id: "afternoon", label: "Afternoon", start: 12, end: 17, color: "#2FA8D8" },
+  { id: "evening", label: "Evening", start: 17, end: 24, color: "#7A5AF8" },
+];
+const SEG_ICON = {
+  morning: '<path d="M12 4v2M5.5 10.5 7 12M18.5 10.5 17 12M3 17h18M7.5 17a4.5 4.5 0 0 1 9 0M9 21h6"/>',
+  afternoon: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>',
+  evening: '<path d="M20 14.5A7.5 7.5 0 1 1 9.5 4a6 6 0 0 0 10.5 10.5z"/>',
+};
+const segFromHour = (h) => SEGMENTS.find((s) => h >= s.start && h < s.end) || SEGMENTS[2];
+const segFor = (id) => SEGMENTS.find((s) => s.id === id) || SEGMENTS[2];
+const currentSegId = () => segFromHour(new Date().getHours()).id;
+const entrySeg = (e) => e.segment || segFromHour(new Date(e.ts).getHours()).id;
+function segChip(id) {
+  const s = segFor(id);
+  return `<span class="seg-badge" style="--sc:${s.color}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SEG_ICON[id]}</svg>${s.label}</span>`;
+}
 
 /* ---- helpers ------------------------------------------------------------ */
 const $ = (s, r = document) => r.querySelector(s);
@@ -40,10 +62,11 @@ async function saveCheckin() {
     ts: now.getTime(),
     date: now.toISOString(),
     day: dayKey(now),
+    segment: state.segment || currentSegId(),
     emotions: rated.map(([name, rating]) => ({ name, rating, tone: toneOf(name) })),
     note: state.note.trim(),
   });
-  state.ratings = {}; state.note = "";
+  state.ratings = {}; state.note = ""; state.segment = currentSegId();
   toast("Checked in 💜");
   render();
 }
@@ -102,15 +125,23 @@ async function renderToday() {
   const dateStr = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   const entries = await allCheckins();
   const st = streak(entries);
-  const doneToday = entries.some((e) => e.day === dayKey(now));
   const count = Object.values(state.ratings).filter((r) => r > 0).length;
+  if (!state.segment) state.segment = currentSegId();
+
+  const segTabs = SEGMENTS.map((s) => `
+    <button class="seg ${state.segment === s.id ? "active" : ""}" data-seg="${s.id}" style="--sc:${s.color}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SEG_ICON[s.id]}</svg>
+      ${s.label}
+    </button>`).join("");
 
   view.innerHTML = `
     <div class="lg-head">
       <div class="lg-sub">${esc(dateStr)}${st ? ` · 🔥 ${st}-day streak` : ""}</div>
       <h1>How are you feeling?</h1>
-      <p class="lead">Rate how strongly you feel each emotion today. Skip the ones that don't apply.</p>
+      <p class="lead">Rate how strongly you feel each emotion. Skip the ones that don't apply.</p>
     </div>
+
+    <div class="seg-tabs">${segTabs}</div>
 
     ${emotionGroup("Pleasant", "pleasant")}
     ${emotionGroup("Neutral", "neutral")}
@@ -134,6 +165,12 @@ async function renderToday() {
 
 function wireToday() {
   const view = $("#view");
+  view.querySelectorAll(".seg").forEach((b) => {
+    b.onclick = () => {
+      state.segment = b.dataset.seg;
+      view.querySelectorAll(".seg").forEach((x) => x.classList.toggle("active", x === b));
+    };
+  });
   view.querySelectorAll(".dots").forEach((row) => {
     const name = row.dataset.emo;
     row.querySelectorAll(".dot").forEach((d) => {
@@ -168,6 +205,7 @@ async function renderHistory() {
   }
 
   const st = streak(entries);
+  const filtered = state.filter === "all" ? entries : entries.filter((e) => entrySeg(e) === state.filter);
   view.innerHTML = `
     <div class="lg-head"><h1>History</h1></div>
 
@@ -181,7 +219,10 @@ async function renderHistory() {
     <div class="card trend-card">${trendBars(trend(entries, 14))}<div class="trend-legend"><span><i style="background:${toneColor("pleasant")}"></i>pleasant</span><span><i style="background:${toneColor("unpleasant")}"></i>difficult</span></div></div>
 
     <div class="group-label">All check-ins</div>
-    <div class="card list-card">${entries.map((e) => entryRow(e, false)).join("")}</div>
+    <div class="filter-row" id="filterRow">
+      ${[{ id: "all", label: "All" }, ...SEGMENTS].map((s) => `<button class="filter-chip ${state.filter === s.id ? "active" : ""}" data-f="${s.id}">${s.label}</button>`).join("")}
+    </div>
+    <div class="card list-card">${filtered.length ? filtered.map((e) => entryRow(e, false)).join("") : `<div class="entry"><div class="entry-main"><div class="entry-note" style="margin:6px 0">No ${state.filter} check-ins yet.</div></div></div>`}</div>
 
     <div class="tools">
       <button class="tool-btn" id="exportBtn">Export</button>
@@ -191,6 +232,9 @@ async function renderHistory() {
     <p class="foot-note">Local-only · your journal is stored on this device and never leaves it.</p>
   `;
 
+  view.querySelectorAll(".filter-chip").forEach((b) => {
+    b.onclick = () => { state.filter = b.dataset.f; renderHistory(); };
+  });
   view.querySelectorAll(".del-btn").forEach((b) => {
     b.onclick = async (e) => { e.stopPropagation(); await deleteCheckin(b.dataset.id); toast("Deleted"); renderHistory(); };
   });
@@ -210,7 +254,9 @@ function entryRow(e, compact) {
     <div class="entry">
       <div class="entry-main">
         <div class="entry-head">
-          <span class="entry-when">${when}</span><span class="entry-time">${time}</span>
+          <span class="entry-when">${when}</span>
+          ${segChip(entrySeg(e))}
+          <span class="entry-time">${time}</span>
           <span class="net ${netCls}">${net > 0 ? "+" : ""}${net}</span>
         </div>
         ${tags ? `<div class="entry-tags">${tags}</div>` : ""}
@@ -273,7 +319,7 @@ async function importData(e) {
       if (!emotions.length) continue;
       const ts = c.ts || Date.parse(c.date) || Date.now();
       try {
-        await db.put({ _id: `checkin_${ts}`, type: "checkin", ts, date: new Date(ts).toISOString(), day: dayKey(new Date(ts)), emotions, note: c.note || "" });
+        await db.put({ _id: `checkin_${ts}`, type: "checkin", ts, date: new Date(ts).toISOString(), day: dayKey(new Date(ts)), segment: c.segment || segFromHour(new Date(ts).getHours()).id, emotions, note: c.note || "" });
         n += 1;
       } catch (_) { /* skip dupes */ }
     }

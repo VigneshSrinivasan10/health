@@ -14,18 +14,21 @@ strong each one is, and jot a note if you want. That's it.
 ## What it does
 
 **Check-in** — a dashboard of emotions, each with its own rating.
+- Pick the time of day (**Morning / Afternoon / Evening** — defaults to now), so you
+  can check in more than once a day and keep them separate.
 - Go down the list (grouped Pleasant / Neutral / Difficult) and rate how strongly
   you feel each one on a 1–5 scale. Tap a dot again to clear it. Skip anything that
   doesn't apply.
 - Add a free-text note.
-- Save — it's logged with the date & time. Keeps a gentle day-streak.
+- Save — it's logged with the date, time, and time-of-day. Keeps a gentle day-streak.
 
 **History**
 - Totals, current streak, and your most-rated emotion.
 - A two-week **mood balance** chart — a bar per day, up (green) when pleasant
   emotions outweighed difficult ones, down (purple) when they didn't.
-- Every past check-in with its rated emotions, a net score, and notes
-  (tap ✕ to delete).
+- Every past check-in with its time-of-day badge, rated emotions, a net score, and
+  notes (tap ✕ to delete).
+- **Filter** the list by Morning / Afternoon / Evening.
 - **Export / Import** your journal as JSON for backup.
 
 ## Run locally
